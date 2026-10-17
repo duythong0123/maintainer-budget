@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/public-demo.yml
+      - src/maintainer_budget/**
   schedule:
     - cron: "17 3 * * 1"
 
