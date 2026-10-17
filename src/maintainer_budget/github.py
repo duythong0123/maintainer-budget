@@ -16,6 +16,15 @@ class GitHubError(RuntimeError):
     pass
 
 
+def _number_from_api_url(url: str | None) -> int | None:
+    if not url:
+        return None
+    try:
+        return int(url.rstrip("/").rsplit("/", 1)[-1])
+    except (TypeError, ValueError):
+        return None
+
+
 class GitHubClient:
     def __init__(self, token: str | None = None, *, timeout: int = 30):
         self.token = token or os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
@@ -42,7 +51,7 @@ class GitHubClient:
         except URLError as exc:
             raise GitHubError(f"GitHub API connection failed: {exc.reason}") from exc
 
-    def _paged(self, path: str, *, max_pages: int = 10, extra: dict[str, object] | None = None):
+    def _paged(self, path: str, *, max_pages: int = 100, extra: dict[str, object] | None = None):
         items = []
         for page in range(1, max_pages + 1):
             params = {"per_page": 100, "page": page}
@@ -79,10 +88,30 @@ class GitHubClient:
             page += 1
         return pulls[:max_prs]
 
-    def review_comments(self, repo: str, pr_number: int) -> list[ReviewComment]:
-        raw = self._paged(f"/repos/{repo}/pulls/{pr_number}/comments", max_pages=5)
+    def repository_review_comments(
+        self,
+        repo: str,
+        *,
+        pr_numbers: set[int],
+        since: str | None = None,
+    ) -> list[ReviewComment]:
+        """Collect review comments for target PRs with repository-level pagination.
+
+        GitHub exposes all pull-request review comments for a repository in one
+        paginated endpoint. Fetching that window once avoids the previous N+1
+        pattern of one HTTP request per pull request.
+        """
+        if not pr_numbers:
+            return []
+        extra: dict[str, object] = {"sort": "created", "direction": "asc"}
+        if since:
+            extra["since"] = since
+        raw = self._paged(f"/repos/{repo}/pulls/comments", extra=extra)
         comments: list[ReviewComment] = []
         for item in raw:
+            pr_number = _number_from_api_url(item.get("pull_request_url"))
+            if pr_number not in pr_numbers:
+                continue
             user = item.get("user") or {}
             comments.append(
                 ReviewComment(
@@ -99,10 +128,25 @@ class GitHubClient:
             )
         return comments
 
-    def issue_comments(self, repo: str, pr_number: int) -> list[ReviewComment]:
-        raw = self._paged(f"/repos/{repo}/issues/{pr_number}/comments", max_pages=5)
+    def repository_issue_comments(
+        self,
+        repo: str,
+        *,
+        pr_numbers: set[int],
+        since: str | None = None,
+    ) -> list[ReviewComment]:
+        """Collect top-level PR conversation comments from one repository scan."""
+        if not pr_numbers:
+            return []
+        extra: dict[str, object] = {"sort": "created", "direction": "asc"}
+        if since:
+            extra["since"] = since
+        raw = self._paged(f"/repos/{repo}/issues/comments", extra=extra)
         comments: list[ReviewComment] = []
         for item in raw:
+            pr_number = _number_from_api_url(item.get("issue_url"))
+            if pr_number not in pr_numbers:
+                continue
             user = item.get("user") or {}
             comments.append(
                 ReviewComment(
@@ -120,10 +164,15 @@ class GitHubClient:
         return comments
 
     def collect(self, repo: str, *, max_prs: int = 100, include_issue_comments: bool = False) -> list[ReviewComment]:
-        comments: list[ReviewComment] = []
-        for pull in self.merged_pull_requests(repo, max_prs=max_prs):
-            number = int(pull["number"])
-            comments.extend(self.review_comments(repo, number))
-            if include_issue_comments:
-                comments.extend(self.issue_comments(repo, number))
+        pulls = self.merged_pull_requests(repo, max_prs=max_prs)
+        if not pulls:
+            return []
+
+        pr_numbers = {int(pull["number"]) for pull in pulls}
+        created_at_values = [pull.get("created_at") for pull in pulls if pull.get("created_at")]
+        since = min(created_at_values) if created_at_values else None
+
+        comments = self.repository_review_comments(repo, pr_numbers=pr_numbers, since=since)
+        if include_issue_comments:
+            comments.extend(self.repository_issue_comments(repo, pr_numbers=pr_numbers, since=since))
         return comments
