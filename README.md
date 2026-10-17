@@ -57,7 +57,12 @@ jobs:
           max-prs: "100"
 ```
 
-Run the workflow manually from **Actions → Maintainer Budget → Run workflow**. The action uses the repository's built-in `GITHUB_TOKEN`, audits merged PR review history, and uploads `maintainer-budget.md` plus `maintainer-budget.json` as a workflow artifact.
+Run the workflow manually from **Actions → Maintainer Budget → Run workflow**. The action uses the repository's built-in `GITHUB_TOKEN`, audits merged PR review history, and uploads four small files:
+
+- `maintainer-budget.md` — full human-readable report;
+- `maintainer-budget.json` — machine-readable evidence;
+- `maintainer-budget-share.md` — compact copy/paste summary for issues, README discussions, or launch posts;
+- `maintainer-budget-codex.md` — optional evidence bundle for Codex semantic review.
 
 The copy-paste example also lives in [`examples/maintainer-budget.yml`](examples/maintainer-budget.yml).
 
@@ -74,16 +79,48 @@ maintainer-budget audit openai/codex --max-prs 100
 
 For higher GitHub API rate limits, set `GITHUB_TOKEN` or `GH_TOKEN`.
 
-Write Markdown and JSON reports:
+Write all lightweight outputs in one pass:
 
 ```bash
 maintainer-budget audit owner/repo \
   --max-prs 200 \
   --output maintainer-budget.md \
-  --json maintainer-budget.json
+  --json maintainer-budget.json \
+  --share-card maintainer-budget-share.md \
+  --codex-bundle maintainer-budget-codex.md
 ```
 
-The output contains candidate rules plus the PR, reviewer, path, comment excerpt, and source URL for each piece of evidence.
+The full output contains candidate rules plus the PR, reviewer, path, comment excerpt, and source URL for each piece of evidence.
+
+## Optional Codex workflow — no SDK required
+
+The core remains dependency-free. `--codex-bundle` does **not** call an API; it creates a strict evidence packet that can be handed to Codex when a maintainer wants semantic help.
+
+The bundle tells Codex to:
+
+- never invent repository policy;
+- preserve candidate IDs and original evidence URLs;
+- merge paraphrases only when the evidence supports the same convention;
+- mark ambiguous or stale candidates for human review;
+- never edit `AGENTS.md` automatically.
+
+This keeps the default install tiny while making Codex useful exactly where deterministic clustering starts to struggle.
+
+## Shareable result
+
+`maintainer-budget-share.md` is intentionally short enough to paste into an issue or post:
+
+```text
+Maintainer Budget · owner/repo
+
+1,284 review comments · 312 actionable human comments · 18 recurring candidates
+
+MB-001 · 7 PRs · 3 reviewers — Use the service layer for database access...
+MB-002 · 5 PRs · 2 reviewers — Generated files should not be edited manually...
+MB-003 · 4 PRs · 2 reviewers — Migrations require rollback logic...
+```
+
+The numbers are observed data, not an AI quality score.
 
 ## How it works
 
@@ -101,9 +138,13 @@ repo-specific identifier anchors
 require recurrence across distinct PRs
         ↓
 rank candidates + preserve provenance
+        ↓
+optional Codex semantic review
+        ↓
+human ACCEPT / EDIT / REJECT / STALE
 ```
 
-The alpha uses a small TF-IDF/cosine baseline from the Python standard library plus exact anchors for stable repository-specific identifiers such as `camelCase`, `nextTestSetup`, `_register`, or `ConfigBuilder::default`. This is intentionally less “smart” than an LLM: it gives the project an auditable benchmark before an optional semantic layer is added.
+The alpha uses a small TF-IDF/cosine baseline from the Python standard library plus exact anchors for stable repository-specific identifiers such as `camelCase`, `nextTestSetup`, `_register`, or `ConfigBuilder::default`. This is intentionally less “smart” than an LLM: it gives the project an auditable benchmark before an optional semantic layer is used.
 
 ## Real-data regression demo
 
@@ -149,10 +190,10 @@ The metric that matters next is **candidate acceptance rate**, not stars or numb
 
 ## Roadmap
 
-- **0.1 alpha** — read-only GitHub audit + deterministic candidate clustering + zero-setup GitHub Action.
+- **0.1 alpha** — read-only GitHub audit + deterministic candidate clustering + zero-setup GitHub Action + share/Codex exports.
 - **0.1 beta** — explicit accept/edit/reject decisions and controlled `AGENTS.md` export.
 - **0.3** — backtest candidate rules against historical PRs; detect stale rules.
-- **0.4** — optional Codex semantic layer for paraphrases, always evidence-bound and human-approved.
+- **0.4** — optional deeper Codex semantic layer for paraphrases, always evidence-bound and human-approved.
 - **1.0** — stable rule schema + documented evaluation corpus.
 
 See [`docs/design.md`](docs/design.md).
