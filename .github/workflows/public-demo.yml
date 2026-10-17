@@ -17,7 +17,7 @@ jobs:
   nextjs:
     name: Audit vercel/next.js
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     steps:
       - uses: actions/checkout@v4
@@ -33,11 +33,13 @@ jobs:
         env:
           # Deliberately unauthenticated so this public demo does not depend on
           # cross-repository permissions from this repository's GITHUB_TOKEN.
+          # Keep the window small because GitHub's unauthenticated public API
+          # limit is shared by runner IPs.
           GITHUB_TOKEN: ""
           GH_TOKEN: ""
         run: |
           maintainer-budget audit vercel/next.js \
-            --max-prs 60 \
+            --max-prs 15 \
             --output demo-nextjs.md \
             --json demo-nextjs.json \
             --share-card demo-nextjs-share.md \
@@ -46,7 +48,7 @@ jobs:
       - name: Show result in Actions summary
         run: |
           cat demo-nextjs-share.md >> "$GITHUB_STEP_SUMMARY"
-          printf '\n\n> Public demo: read-only audit of recent merged PR review history from `vercel/next.js`.\n' >> "$GITHUB_STEP_SUMMARY"
+          printf '\n\n> Public demo: a deliberately small, read-only audit of recent merged PR review history from `vercel/next.js`.\n' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload public demo evidence
         uses: actions/upload-artifact@v4
