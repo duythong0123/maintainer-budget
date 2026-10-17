@@ -58,6 +58,31 @@ class ClusterTests(unittest.TestCase):
         ]
         self.assertEqual(cluster_comments(comments, similarity_threshold=0.5, min_unique_prs=2), [])
 
+    def test_plain_hyphenated_prose_does_not_bridge_unrelated_nextjs_reviews(self):
+        comments = [
+            ReviewComment(
+                "vercel/next.js",
+                98469,
+                "https://github.com/vercel/next.js/pull/98469#discussion_r3983819642",
+                "bgw",
+                "Potential follow-up: Explore if I can use a frozen map for this. Instead of the cursor API, I could operate on indicies.",
+                path="turbopack/crates/turbo-tasks-fs/src/fs_map.rs",
+                author_type="User",
+                author_association="MEMBER",
+            ),
+            ReviewComment(
+                "vercel/next.js",
+                98932,
+                "https://github.com/vercel/next.js/pull/98932#discussion_r4163950930",
+                "sokra",
+                "That should be a follow-up PR, but the `splice` logic sounds wasteful. We should not insert the `default` export in the loop above for `!allowExportDefault`, so we can just always `push` it here.",
+                path="turbopack/crates/turbopack-ecmascript-runtime/js/src/shared/runtime/runtime-utils.ts",
+                author_type="User",
+                author_association="MEMBER",
+            ),
+        ]
+        self.assertEqual(cluster_comments(comments, min_unique_prs=2), [])
+
     def test_does_not_cluster_same_pr_only(self):
         comments = [
             c(10, "Please use nextTestSetup for this fixture."),
