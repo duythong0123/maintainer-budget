@@ -8,6 +8,7 @@ from .filtering import clean_text
 from .models import CandidateRule, ReviewComment
 
 TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_:\-\.]*")
+BACKTICK_RE = re.compile(r"`([^`\n]+)`")
 GENERIC_ANCHORS = {
     "package.json", "cargo.toml", "readme.md", "pyproject.toml", "tsconfig.json",
     "github", "main", "master", "src", "test", "tests",
@@ -41,29 +42,60 @@ def tokenize(text: str) -> list[str]:
     return out
 
 
+def _normalized_anchor(raw: str) -> str | None:
+    token = raw.strip("._-:")
+    if len(token) < 5:
+        return None
+    normalized = token.lower()
+    if normalized in GENERIC_ANCHORS:
+        return None
+    return normalized
+
+
 def anchor_tokens(text: str) -> set[str]:
     """Return exact repo-specific identifiers that can bridge paraphrased feedback.
 
-    Reviewers often describe the same convention with very different prose while
-    repeating one stable symbol or API name (for example ``camelCase``,
-    ``nextTestSetup`` or ``ConfigBuilder::default``). These anchors are treated
-    as stronger evidence than ordinary English words, but common manifest/file
-    names are intentionally excluded.
+    Stable symbols such as ``camelCase``, ``nextTestSetup`` and
+    ``ConfigBuilder::default`` are useful anchors even when surrounding prose is
+    very different. Plain hyphenated English prose is intentionally *not* a
+    strong anchor: the public Next.js pilot showed that a shared phrase such as
+    ``follow-up`` can otherwise connect unrelated reviews.
+
+    Hyphenated identifiers are still accepted when reviewers mark them as code
+    with Markdown backticks.
     """
+    cleaned = clean_text(text)
     anchors: set[str] = set()
-    for raw in TOKEN_RE.findall(clean_text(text)):
-        token = raw.strip("._-:")
-        if len(token) < 5:
-            continue
-        normalized = token.lower()
-        if normalized in GENERIC_ANCHORS:
+
+    # Backticks are an explicit signal that a token is code/project vocabulary,
+    # so they may safely preserve kebab-case identifiers.
+    for span in BACKTICK_RE.findall(cleaned):
+        for raw in TOKEN_RE.findall(span):
+            normalized = _normalized_anchor(raw)
+            if normalized is None:
+                continue
+            looks_code_like = (
+                raw.startswith("_")
+                or "_" in raw
+                or "." in raw
+                or "::" in raw
+                or "-" in raw
+                or re.search(r"[a-z][A-Z]", raw) is not None
+            )
+            if looks_code_like:
+                anchors.add(normalized)
+
+    # Outside code spans, require a stronger structural signal than a single
+    # hyphen so natural prose like "follow-up" does not become repository policy.
+    for raw in TOKEN_RE.findall(cleaned):
+        normalized = _normalized_anchor(raw)
+        if normalized is None:
             continue
         looks_structured = (
             raw.startswith("_")
             or "_" in raw
             or "." in raw
             or "::" in raw
-            or "-" in raw
             or re.search(r"[a-z][A-Z]", raw) is not None
         )
         if looks_structured:
