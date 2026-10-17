@@ -1,0 +1,72 @@
+name: Candidate feedback
+description: Label a Maintainer Budget candidate so we can measure precision on real repositories.
+title: "[candidate feedback] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping validate Maintainer Budget. The most useful signal is whether a candidate captures a real, reusable repository convention.
+
+  - type: input
+    id: repository
+    attributes:
+      label: Repository audited
+      description: Public GitHub repository in owner/name form.
+      placeholder: owner/repo
+    validations:
+      required: true
+
+  - type: input
+    id: candidate
+    attributes:
+      label: Candidate ID or short rule text
+      placeholder: MB-003 — API handlers should use the service layer
+    validations:
+      required: true
+
+  - type: dropdown
+    id: verdict
+    attributes:
+      label: Verdict
+      description: How useful is this candidate as repository guidance?
+      options:
+        - ACCEPT — useful as-is
+        - EDIT — useful after a small edit or narrower scope
+        - REJECT — noise, wrong, or too generic
+        - STALE — used to be true but is no longer current
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence links
+      description: Paste the GitHub review-comment or PR links shown by Maintainer Budget.
+      placeholder: |
+        https://github.com/owner/repo/pull/123#discussion_r...
+        https://github.com/owner/repo/pull/456#discussion_r...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why did you choose this verdict?
+      description: Explain what is correct, misleading, missing, or obsolete.
+    validations:
+      required: true
+
+  - type: textarea
+    id: better_rule
+    attributes:
+      label: Better wording or scope (optional)
+      description: If you selected EDIT, show the wording/scope you would actually keep.
+
+  - type: checkboxes
+    id: permission
+    attributes:
+      label: Evaluation use
+      options:
+        - label: You may include this verdict in Maintainer Budget's public, aggregate evaluation results.
+          required: true
