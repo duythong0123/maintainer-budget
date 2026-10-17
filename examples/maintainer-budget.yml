@@ -11,6 +11,6 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: duythong0123/maintainer-budget@main
+      - uses: duythong0123/maintainer-budget@v0
         with:
           max-prs: "100"
