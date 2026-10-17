@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from .cluster import cluster_comments
+from .exports import render_codex_bundle, render_share_card
 from .filtering import filter_actionable
 from .github import GitHubClient, GitHubError
 from .report import render_markdown, write_json
@@ -25,6 +26,8 @@ def _parser() -> argparse.ArgumentParser:
     audit.add_argument("--include-issue-comments", action="store_true", help="Also inspect top-level PR conversation comments")
     audit.add_argument("--json", dest="json_path", help="Write machine-readable report to this path")
     audit.add_argument("--output", help="Write Markdown report to this path instead of stdout")
+    audit.add_argument("--share-card", help="Write a compact shareable Markdown summary")
+    audit.add_argument("--codex-bundle", help="Write an evidence bundle for optional Codex semantic review")
     return parser
 
 
@@ -67,6 +70,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.json_path:
         write_json(args.json_path, args.repo, comments, actionable, candidates)
         print(f"wrote {args.json_path}", file=sys.stderr)
+
+    if args.share_card:
+        share = render_share_card(args.repo, comments, actionable, candidates)
+        Path(args.share_card).write_text(share + "\n", encoding="utf-8")
+        print(f"wrote {args.share_card}", file=sys.stderr)
+
+    if args.codex_bundle:
+        bundle = render_codex_bundle(args.repo, candidates)
+        Path(args.codex_bundle).write_text(bundle + "\n", encoding="utf-8")
+        print(f"wrote {args.codex_bundle}", file=sys.stderr)
     return 0
 
 
