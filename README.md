@@ -7,6 +7,7 @@ Maintainer Budget mines repeated **human code-review feedback** and turns it int
 **No API key. No server. No database. No contributor code execution.**
 
 [![CI](https://github.com/duythong0123/maintainer-budget/actions/workflows/ci.yml/badge.svg)](https://github.com/duythong0123/maintainer-budget/actions/workflows/ci.yml)
+[![Public OSS demo](https://github.com/duythong0123/maintainer-budget/actions/workflows/public-demo.yml/badge.svg)](https://github.com/duythong0123/maintainer-budget/actions/workflows/public-demo.yml)
 
 ## Try it in one workflow
 
@@ -78,6 +79,22 @@ The first TF-IDF baseline missed the relationship. The current alpha links them 
 
 See [`research/demo-openai-codex.md`](research/demo-openai-codex.md) for the exact public evidence and regression output.
 
+## Live evaluation: false positives become tests
+
+A real public audit of a recent `vercel/next.js` window collected **367 review comments**, retained **51 likely actionable human comments**, and emitted **1 candidate**. That candidate was wrong: two unrelated reviews were connected by the ordinary phrase `follow-up`.
+
+We did not hide the result. The two exact public comments became a regression test, anchor detection was tightened in PR #14, and a post-fix compact live run returned:
+
+```text
+37 review comments
+ 6 actionable human comments
+ 0 recurring candidates
+```
+
+For a conservative alpha, zero candidates is better than unsupported repository policy. See [`research/demo-nextjs.md`](research/demo-nextjs.md) and the [public scorecard #4](https://github.com/duythong0123/maintainer-budget/issues/4). The [Public OSS demo workflow](https://github.com/duythong0123/maintainer-budget/actions/workflows/public-demo.yml) keeps exercising the core against public review history.
+
+These runs are engineering validation, **not** external adoption or maintainer endorsement.
+
 ## Why this is different
 
 Maintainer Budget is deliberately conservative:
@@ -99,13 +116,13 @@ The packet instructs Codex to preserve candidate IDs and evidence URLs, avoid in
 
 This creates a lightweight path from historical review knowledge to scoped agent instructions such as `AGENTS.md` without making the default install heavy.
 
-Public ecosystem evidence:
+Public evidence:
 
-- [`openai/codex` focused regression](research/demo-openai-codex.md) — current alpha behavior;
-- [`vercel/next.js` review + AGENTS.md signal](research/demo-nextjs.md) — why repository-specific test conventions matter;
+- [`openai/codex` focused regression](research/demo-openai-codex.md) — a real recurring `camelCase` convention used as a regression fixture;
+- [`vercel/next.js` live evaluation](research/demo-nextjs.md) — a real public run, false positive, regression fix, and post-fix rerun;
 - [`microsoft/vscode` instruction/lifecycle signal](research/demo-vscode.md) — why scope and provenance matter.
 
-The Next.js and VS Code pages are landscape evidence, **not** claims that the current alpha already produced those exact clusters.
+The VS Code page is landscape evidence, not a claim that the current alpha already produced those exact clusters.
 
 ## CLI
 
