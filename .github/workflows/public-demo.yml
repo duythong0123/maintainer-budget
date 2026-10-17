@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 jobs:
-  openai-codex:
-    name: Audit openai/codex
+  nextjs:
+    name: Audit vercel/next.js
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -35,26 +35,26 @@ jobs:
           GITHUB_TOKEN: ""
           GH_TOKEN: ""
         run: |
-          maintainer-budget audit openai/codex \
-            --max-prs 40 \
-            --output demo-openai-codex.md \
-            --json demo-openai-codex.json \
-            --share-card demo-openai-codex-share.md \
-            --codex-bundle demo-openai-codex-codex.md
+          maintainer-budget audit vercel/next.js \
+            --max-prs 60 \
+            --output demo-nextjs.md \
+            --json demo-nextjs.json \
+            --share-card demo-nextjs-share.md \
+            --codex-bundle demo-nextjs-codex.md
 
       - name: Show result in Actions summary
         run: |
-          cat demo-openai-codex-share.md >> "$GITHUB_STEP_SUMMARY"
-          printf '\n\n> Public demo: read-only audit of recent merged PR review history from `openai/codex`.\n' >> "$GITHUB_STEP_SUMMARY"
+          cat demo-nextjs-share.md >> "$GITHUB_STEP_SUMMARY"
+          printf '\n\n> Public demo: read-only audit of recent merged PR review history from `vercel/next.js`.\n' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload public demo evidence
         uses: actions/upload-artifact@v4
         with:
-          name: public-demo-openai-codex
+          name: public-demo-nextjs
           path: |
-            demo-openai-codex.md
-            demo-openai-codex.json
-            demo-openai-codex-share.md
-            demo-openai-codex-codex.md
+            demo-nextjs.md
+            demo-nextjs.json
+            demo-nextjs-share.md
+            demo-nextjs-codex.md
           if-no-files-found: error
           retention-days: 30
