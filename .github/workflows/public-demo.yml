@@ -1,0 +1,60 @@
+name: Public OSS demo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/public-demo.yml
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  openai-codex:
+    name: Audit openai/codex
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install current main
+        run: python -m pip install .
+
+      - name: Audit public review history
+        env:
+          # Deliberately unauthenticated so this public demo does not depend on
+          # cross-repository permissions from this repository's GITHUB_TOKEN.
+          GITHUB_TOKEN: ""
+          GH_TOKEN: ""
+        run: |
+          maintainer-budget audit openai/codex \
+            --max-prs 40 \
+            --output demo-openai-codex.md \
+            --json demo-openai-codex.json \
+            --share-card demo-openai-codex-share.md \
+            --codex-bundle demo-openai-codex-codex.md
+
+      - name: Show result in Actions summary
+        run: |
+          cat demo-openai-codex-share.md >> "$GITHUB_STEP_SUMMARY"
+          printf '\n\n> Public demo: read-only audit of recent merged PR review history from `openai/codex`.\n' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload public demo evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-demo-openai-codex
+          path: |
+            demo-openai-codex.md
+            demo-openai-codex.json
+            demo-openai-codex-share.md
+            demo-openai-codex-codex.md
+          if-no-files-found: error
+          retention-days: 30
