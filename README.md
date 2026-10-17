@@ -34,13 +34,45 @@ Maintainer Budget is **not** another AI code reviewer and it does not try to det
 
 The goal is repository memory with provenance, not plausible-sounding rules.
 
+## Fastest way to try it: GitHub Action
+
+Create `.github/workflows/maintainer-budget.yml` in your repository:
+
+```yaml
+name: Maintainer Budget
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: duythong0123/maintainer-budget@main
+        with:
+          max-prs: "100"
+```
+
+Run the workflow manually from **Actions → Maintainer Budget → Run workflow**. The action uses the repository's built-in `GITHUB_TOKEN`, audits merged PR review history, and uploads `maintainer-budget.md` plus `maintainer-budget.json` as a workflow artifact.
+
+The copy-paste example also lives in [`examples/maintainer-budget.yml`](examples/maintainer-budget.yml).
+
+> Alpha note: `@main` is used until the first stable action tag is cut. Pin a release tag once one is available.
+
 ## Alpha CLI
 
+Install directly from GitHub:
+
 ```bash
-python -m pip install -e .
-export GITHUB_TOKEN=...   # optional for public repos, recommended for rate limits
+python -m pip install "git+https://github.com/duythong0123/maintainer-budget.git"
 maintainer-budget audit openai/codex --max-prs 100
 ```
+
+For higher GitHub API rate limits, set `GITHUB_TOKEN` or `GH_TOKEN`.
 
 Write Markdown and JSON reports:
 
@@ -117,11 +149,11 @@ The metric that matters next is **candidate acceptance rate**, not stars or numb
 
 ## Roadmap
 
-- **0.1 alpha** — read-only GitHub audit + deterministic candidate clustering.
+- **0.1 alpha** — read-only GitHub audit + deterministic candidate clustering + zero-setup GitHub Action.
 - **0.1 beta** — explicit accept/edit/reject decisions and controlled `AGENTS.md` export.
 - **0.3** — backtest candidate rules against historical PRs; detect stale rules.
 - **0.4** — optional Codex semantic layer for paraphrases, always evidence-bound and human-approved.
-- **1.0** — stable rule schema + GitHub Action + documented evaluation corpus.
+- **1.0** — stable rule schema + documented evaluation corpus.
 
 See [`docs/design.md`](docs/design.md).
 
