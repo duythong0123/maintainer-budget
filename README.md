@@ -31,9 +31,9 @@ jobs:
           max-prs: "100"
 ```
 
-Run **Actions → Maintainer Budget → Run workflow**.
+Run **Actions → Maintainer Budget → Run workflow**. The compact result appears directly in the GitHub Actions run summary, so you can judge the signal before downloading anything.
 
-The action uploads four small files:
+The action also uploads four small files:
 
 - `maintainer-budget.md` — full evidence report;
 - `maintainer-budget.json` — machine-readable data;
