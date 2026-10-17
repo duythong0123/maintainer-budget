@@ -36,3 +36,5 @@ jobs:
         run: |
           test -s maintainer-budget.md
           test -s maintainer-budget.json
+          test -s maintainer-budget-share.md
+          test -s maintainer-budget-codex.md
