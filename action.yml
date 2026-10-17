@@ -1,0 +1,103 @@
+name: Maintainer Budget Audit
+description: Find repeated human review feedback and produce evidence-backed repository rule candidates.
+author: duythong0123
+
+branding:
+  icon: repeat
+  color: blue
+
+inputs:
+  repo:
+    description: Repository to audit in owner/name form. Defaults to the current repository.
+    required: false
+    default: ""
+  max-prs:
+    description: Maximum number of recent merged pull requests to inspect.
+    required: false
+    default: "100"
+  min-prs:
+    description: Minimum number of distinct PRs required for a candidate rule.
+    required: false
+    default: "2"
+  similarity:
+    description: Baseline cosine similarity threshold.
+    required: false
+    default: "0.34"
+  include-issue-comments:
+    description: Also inspect top-level PR conversation comments.
+    required: false
+    default: "false"
+  token:
+    description: GitHub token used to read PR review history. Defaults to github.token.
+    required: false
+    default: ""
+  output:
+    description: Markdown report path.
+    required: false
+    default: "maintainer-budget.md"
+  json-output:
+    description: JSON report path.
+    required: false
+    default: "maintainer-budget.json"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Maintainer Budget
+      shell: bash
+      run: python -m pip install "$GITHUB_ACTION_PATH"
+
+    - name: Audit review history
+      shell: bash
+      env:
+        MB_REPO: ${{ inputs.repo }}
+        MB_MAX_PRS: ${{ inputs.max-prs }}
+        MB_MIN_PRS: ${{ inputs.min-prs }}
+        MB_SIMILARITY: ${{ inputs.similarity }}
+        MB_INCLUDE_ISSUE_COMMENTS: ${{ inputs.include-issue-comments }}
+        MB_TOKEN: ${{ inputs.token }}
+        MB_DEFAULT_TOKEN: ${{ github.token }}
+        MB_OUTPUT: ${{ inputs.output }}
+        MB_JSON_OUTPUT: ${{ inputs.json-output }}
+      run: |
+        set -euo pipefail
+
+        repo="$MB_REPO"
+        if [ -z "$repo" ]; then
+          repo="$GITHUB_REPOSITORY"
+        fi
+
+        if [ -n "$MB_TOKEN" ]; then
+          export GITHUB_TOKEN="$MB_TOKEN"
+        else
+          export GITHUB_TOKEN="$MB_DEFAULT_TOKEN"
+        fi
+
+        args=(
+          audit "$repo"
+          --max-prs "$MB_MAX_PRS"
+          --min-prs "$MB_MIN_PRS"
+          --similarity "$MB_SIMILARITY"
+          --output "$MB_OUTPUT"
+          --json "$MB_JSON_OUTPUT"
+        )
+
+        if [ "$MB_INCLUDE_ISSUE_COMMENTS" = "true" ]; then
+          args+=(--include-issue-comments)
+        fi
+
+        maintainer-budget "${args[@]}"
+
+    - name: Upload audit report
+      uses: actions/upload-artifact@v4
+      with:
+        name: maintainer-budget-report
+        path: |
+          ${{ inputs.output }}
+          ${{ inputs.json-output }}
+        if-no-files-found: error
