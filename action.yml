@@ -39,6 +39,14 @@ inputs:
     description: JSON report path.
     required: false
     default: "maintainer-budget.json"
+  share-output:
+    description: Compact share-card Markdown path.
+    required: false
+    default: "maintainer-budget-share.md"
+  codex-output:
+    description: Optional Codex evidence-bundle Markdown path.
+    required: false
+    default: "maintainer-budget-codex.md"
 
 runs:
   using: composite
@@ -64,6 +72,8 @@ runs:
         MB_DEFAULT_TOKEN: ${{ github.token }}
         MB_OUTPUT: ${{ inputs.output }}
         MB_JSON_OUTPUT: ${{ inputs.json-output }}
+        MB_SHARE_OUTPUT: ${{ inputs.share-output }}
+        MB_CODEX_OUTPUT: ${{ inputs.codex-output }}
       run: |
         set -euo pipefail
 
@@ -85,6 +95,8 @@ runs:
           --similarity "$MB_SIMILARITY"
           --output "$MB_OUTPUT"
           --json "$MB_JSON_OUTPUT"
+          --share-card "$MB_SHARE_OUTPUT"
+          --codex-bundle "$MB_CODEX_OUTPUT"
         )
 
         if [ "$MB_INCLUDE_ISSUE_COMMENTS" = "true" ]; then
@@ -100,4 +112,6 @@ runs:
         path: |
           ${{ inputs.output }}
           ${{ inputs.json-output }}
+          ${{ inputs.share-output }}
+          ${{ inputs.codex-output }}
         if-no-files-found: error
