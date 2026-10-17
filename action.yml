@@ -105,6 +105,18 @@ runs:
 
         maintainer-budget "${args[@]}"
 
+    - name: Show result in run summary
+      shell: bash
+      env:
+        MB_SHARE_OUTPUT: ${{ inputs.share-output }}
+      run: |
+        set -euo pipefail
+        if [ -s "$MB_SHARE_OUTPUT" ]; then
+          cat "$MB_SHARE_OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+        else
+          echo "Maintainer Budget completed, but no share-card output was produced." >> "$GITHUB_STEP_SUMMARY"
+        fi
+
     - name: Upload audit report
       uses: actions/upload-artifact@v4
       with:
