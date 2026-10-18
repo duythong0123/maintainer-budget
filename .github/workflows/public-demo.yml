@@ -38,6 +38,8 @@ jobs:
           GITHUB_TOKEN: ""
           GH_TOKEN: ""
         run: |
+          # Without pipefail, tee hides the audit command's nonzero exit status.
+          set -o pipefail
           if maintainer-budget audit vercel/next.js \
             --max-prs 15 \
             --output demo-nextjs.md \
