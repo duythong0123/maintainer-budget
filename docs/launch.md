@@ -72,3 +72,29 @@ Before broad promotion:
 - at least one external maintainer has reviewed real output, or the launch post clearly says the pilot is seeking the first external repositories.
 
 Do not claim an acceptance rate until human-labeled pilot data exists.
+
+## Public launch wave 1 — 2026-10-18
+
+**Headline:** `Show HN: I mined 367 Next.js review comments to find rules — the first rule was wrong`
+
+**Copy-ready body (present tense, no adoption claims):**
+
+> I built Maintainer Budget, a tiny read-only GitHub Action that looks for recurring *human* review feedback across merged PRs. The aim is to surface repository-specific rule candidates with links back to the comments, not to generate policy from thin air.
+>
+> The first live Next.js evaluation collected 367 review comments and identified 51 likely actionable human comments. It proposed one recurring rule — but it was a false positive: two unrelated comments shared the phrase `follow-up`. I turned those comments into a regression test and tightened identifier matching. In a smaller post-fix live run, the same false positive was gone (37 comments, 6 actionable, 0 candidates). Those are different windows; this is a bugfix demonstration, not a claim of benchmark precision.
+>
+> It requires no paid model, backend, database or custom secret when run as an Action in your own repository. It ignores bots by default and never changes `AGENTS.md` automatically.
+>
+> I am looking for 5–10 OSS maintainers willing to look at reports and mark proposed rules ACCEPT / EDIT / REJECT / STALE, including bad results. No external pilots or success rate are claimed yet.
+>
+> Repo: https://github.com/duythong0123/maintainer-budget
+>
+> Live public run: https://github.com/duythong0123/maintainer-budget/actions/workflows/public-demo.yml
+>
+> Pilot signup: https://github.com/duythong0123/maintainer-budget/issues/3
+
+**Short social version:**
+
+> Reviewing the same repository convention repeatedly is expensive. I made a GitHub Action to find repeated *human* PR review feedback and preserve evidence links. A live Next.js run found a false rule; that false positive is now a regression test. Looking for early maintainer pilots, especially people willing to report bad output. https://github.com/duythong0123/maintainer-budget
+
+**Status:** these are publication-ready drafts **not yet posted** to Hacker News, Reddit, or social networks. Do not claim otherwise. See [`docs/distribution-wave-1.md`](distribution-wave-1.md) for targeted outreach and curated list contribution instructions.
