@@ -4,7 +4,7 @@ Maintainer Budget is looking for public open-source repositories with real pull-
 
 ## What the pilot is trying to learn
 
-The project does **not** need more generated rules. It needs evidence about precision.
+The project does **not** need more generated rules. It needs evidence about precision. Zero candidates is a valid result; do not loosen clustering thresholds simply to create pilot data.
 
 For each candidate, a maintainer labels it as one of:
 
@@ -53,12 +53,12 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: duythong0123/maintainer-budget@main
+      - uses: duythong0123/maintainer-budget@v0
         with:
           max-prs: "100"
 ```
 
-Run it manually and download the `maintainer-budget-report` artifact.
+Run it manually. Read the compact result directly in the **Actions run summary**, then download the `maintainer-budget-report` artifact for the full Markdown, JSON, share card and optional Codex evidence bundle.
 
 ### Option B — CLI
 
