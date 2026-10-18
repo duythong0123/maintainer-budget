@@ -7,7 +7,7 @@ Maintainer Budget mines repeated **human code-review feedback** and turns it int
 **No API key. No server. No database. No contributor code execution.**
 
 [![CI](https://github.com/duythong0123/maintainer-budget/actions/workflows/ci.yml/badge.svg)](https://github.com/duythong0123/maintainer-budget/actions/workflows/ci.yml)
-[![Public OSS demo](https://github.com/duythong0123/maintainer-budget/actions/workflows/public-demo.yml/badge.svg)](https://github.com/duythong0123/maintainer-budget/actions/workflows/public-demo.yml)
+**Public OSS demo (best-effort):** [review-history audit workflow](https://github.com/duythong0123/maintainer-budget/actions/workflows/public-demo.yml). Cross-repository demos use anonymous GitHub API access and may report a rate-limited skip; see the [last verified run](https://github.com/duythong0123/maintainer-budget/actions/runs/39015133365).
 
 ## Try it in one workflow
 
