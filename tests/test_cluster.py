@@ -1,6 +1,6 @@
 import unittest
 
-from maintainer_budget.cluster import cluster_comments
+from maintainer_budget.cluster import anchor_tokens, cluster_comments
 from maintainer_budget.models import ReviewComment
 
 
@@ -80,6 +80,30 @@ class ClusterTests(unittest.TestCase):
                 author_type="User",
                 author_association="MEMBER",
             ),
+        ]
+        self.assertEqual(cluster_comments(comments, min_unique_prs=2), [])
+
+    def test_sentence_terminal_periods_are_not_identifier_anchors(self):
+        anchors = anchor_tokens("The example above. It normally. works as described.")
+        self.assertNotIn("above", anchors)
+        self.assertNotIn("normally", anchors)
+        self.assertNotIn("described", anchors)
+
+    def test_real_identifiers_still_anchor_with_code_punctuation(self):
+        anchors = anchor_tokens(
+            "Please use ConfigBuilder::default, module.config, nextTestSetup, "
+            "a `kebab-case` key and a normal follow-up."
+        )
+        self.assertIn("configbuilder::default", anchors)
+        self.assertIn("module.config", anchors)
+        self.assertIn("nexttestsetup", anchors)
+        self.assertIn("kebab-case", anchors)
+        self.assertNotIn("follow-up", anchors)
+
+    def test_unrelated_prose_with_shared_trailing_period_does_not_cluster(self):
+        comments = [
+            c(10, "Please use the parser helper above. It avoids extra memory allocation."),
+            c(20, "Please document the chart above. We should describe the axes clearly."),
         ]
         self.assertEqual(cluster_comments(comments, min_unique_prs=2), [])
 
