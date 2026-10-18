@@ -38,19 +38,43 @@ jobs:
           GITHUB_TOKEN: ""
           GH_TOKEN: ""
         run: |
-          maintainer-budget audit vercel/next.js \
+          if maintainer-budget audit vercel/next.js \
             --max-prs 15 \
             --output demo-nextjs.md \
             --json demo-nextjs.json \
             --share-card demo-nextjs-share.md \
-            --codex-bundle demo-nextjs-codex.md
+            --codex-bundle demo-nextjs-codex.md 2>&1 | tee audit-log.txt; then
+            echo "AUDIT_RESULT=success" >> "$GITHUB_ENV"
+          elif grep -qi "API rate limit exceeded" audit-log.txt; then
+            # The hosted runner IP shares GitHub's anonymous quota. Do not
+            # pretend this run produced a new report, but don't signal a
+            # regression in Maintainer Budget either.
+            echo "AUDIT_RESULT=rate_limited" >> "$GITHUB_ENV"
+          else
+            echo "The public audit failed for a reason other than rate limiting." >&2
+            exit 1
+          fi
 
       - name: Show result in Actions summary
         run: |
-          cat demo-nextjs-share.md >> "$GITHUB_STEP_SUMMARY"
-          printf '\n\n> Public demo: a deliberately small, read-only audit of recent merged PR review history from `vercel/next.js`.\n' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$AUDIT_RESULT" = "success" ]; then
+            cat demo-nextjs-share.md >> "$GITHUB_STEP_SUMMARY"
+            printf '\n\n> Public demo: a deliberately small, read-only audit of recent merged PR review history from `vercel/next.js`.\n' >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$AUDIT_RESULT" = "rate_limited" ]; then
+            printf '%s\n' \
+              '### Live public audit was rate limited — no new data produced' \
+              '' \
+              'GitHub returned an anonymous API rate-limit error (HTTP 403) on the shared hosted-runner IP.' \
+              'This run **does not validate or invalidate** the clustering algorithm and created **no new report**.' \
+              'See the [last successful public demo](https://github.com/duythong0123/maintainer-budget/actions/runs/39015133365) and [documented evaluation](https://github.com/duythong0123/maintainer-budget/blob/main/research/demo-nextjs.md).' \
+              >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Unexpected audit status" >&2
+            exit 1
+          fi
 
       - name: Upload public demo evidence
+        if: env.AUDIT_RESULT == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: public-demo-nextjs
