@@ -52,6 +52,23 @@ def _normalized_anchor(raw: str) -> str | None:
     return normalized
 
 
+def _looks_code_like(raw: str, *, allow_hyphen: bool) -> bool:
+    """Sentence-ending punctuation should not turn prose into code anchors.
+
+    TOKEN_RE keeps dots and colons for module.config and ConfigBuilder::default.
+    A word like above. is not an identifier just because of its last period.
+    """
+    core = raw.strip("._-:")
+    return (
+        raw.startswith("_")
+        or "_" in core
+        or "." in core
+        or "::" in core
+        or (allow_hyphen and "-" in core)
+        or re.search(r"[a-z][A-Z]", core) is not None
+    )
+
+
 def anchor_tokens(text: str) -> set[str]:
     """Return exact repo-specific identifiers that can bridge paraphrased feedback.
 
@@ -74,14 +91,7 @@ def anchor_tokens(text: str) -> set[str]:
             normalized = _normalized_anchor(raw)
             if normalized is None:
                 continue
-            looks_code_like = (
-                raw.startswith("_")
-                or "_" in raw
-                or "." in raw
-                or "::" in raw
-                or "-" in raw
-                or re.search(r"[a-z][A-Z]", raw) is not None
-            )
+            looks_code_like = _looks_code_like(raw, allow_hyphen=True)
             if looks_code_like:
                 anchors.add(normalized)
 
@@ -91,13 +101,7 @@ def anchor_tokens(text: str) -> set[str]:
         normalized = _normalized_anchor(raw)
         if normalized is None:
             continue
-        looks_structured = (
-            raw.startswith("_")
-            or "_" in raw
-            or "." in raw
-            or "::" in raw
-            or re.search(r"[a-z][A-Z]", raw) is not None
-        )
+        looks_structured = _looks_code_like(raw, allow_hyphen=False)
         if looks_structured:
             anchors.add(normalized)
     return anchors
