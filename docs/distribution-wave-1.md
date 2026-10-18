@@ -55,3 +55,23 @@ Proposed PR body:
 | Github stars | 0 at baseline on 2026-10-18 |
 
 Only update externally verified figures. The next substantive evidence is a maintainer actually replying or a repo owner submitting a report, not the number of drafts.
+
+## Community launch priority update — 2026-10-18
+
+**First external post target:** [r/github self-promotion megathread](https://www.reddit.com/r/github/comments/1jy8rea/promote_your_projects_here_selfpromotion/). That thread explicitly invites GitHub project posts. Recheck current pinned threads and subreddit rules when posting.
+
+**Suggested short comment (owner should personalize in their own voice):**
+
+> I'm testing an open-source GitHub Action called Maintainer Budget. It looks through merged pull-request reviews for feedback human reviewers have repeated across different PRs, and produces evidence-linked candidates rather than changing repo policy automatically.
+>
+> A public Next.js trial uncovered a false positive: two unrelated reviews both used `follow-up`. I added a regression test and tightened the matcher. The next smaller run produced zero candidates, which is fine for a conservative alpha.
+>
+> I would appreciate feedback from maintainers with active PR review history; false positives and empty reports are useful too. No paid API key, DB or backend needed: https://github.com/duythong0123/maintainer-budget . Pilot instructions: https://github.com/duythong0123/maintainer-budget/issues/3
+
+**Status:** drafted, **not posted**. Posting requires the repo owner's Reddit account; the connected GitHub integration cannot post to Reddit.
+
+**Show HN:** [official HN announcement](https://news.ycombinator.com/showlim) currently says Show HNs are temporarily restricted for unfamiliar accounts; [submission guidelines](https://news.ycombinator.com/newsguidelines.html) also discourage automated/AI-written posts and promotional-only accounts. Hold the prepared draft and do not post it verbatim or via automation.
+
+**awesome-actions:** [contribution guidelines](https://github.com/sdras/awesome-actions/blob/main/contributing.md) allow one-entry PRs, but the repo has a large open-PR backlog; treat this as a secondary discovery channel rather than the route to immediate pilots. A fork is not currently available and the connected GitHub App uses **selected-repository** access, so creating a fork alone may not authorize assistant writes there. A human account owner would need to fork and possibly grant the app access, or submit the PR via GitHub UI.
+
+Next measurable outcome: the first authentic external outreach message/post or maintainer feedback link. Until then: **0 posts, 0 contacts, 0 external pilots**.
