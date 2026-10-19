@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import time
+from datetime import datetime, timedelta, timezone
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -42,14 +43,23 @@ class GitHubClient:
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         request = Request(url, headers=headers)
-        try:
-            with urlopen(request, timeout=self.timeout) as response:
-                return json.load(response)
-        except HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="replace")
-            raise GitHubError(f"GitHub API {exc.code}: {body[:500]}") from exc
-        except URLError as exc:
-            raise GitHubError(f"GitHub API connection failed: {exc.reason}") from exc
+        for attempt in range(3):
+            try:
+                with urlopen(request, timeout=self.timeout) as response:
+                    return json.load(response)
+            except HTTPError as exc:
+                body = exc.read().decode("utf-8", errors="replace")
+                # GitHub sometimes returns transient gateway errors for public
+                # repositories. Do not retry permission failures or quota 403.
+                if exc.code in (429, 502, 503, 504) and attempt < 2:
+                    time.sleep(1 << attempt)
+                    continue
+                raise GitHubError(f"GitHub API {exc.code}: {body[:500]}") from exc
+            except URLError as exc:
+                if attempt < 2:
+                    time.sleep(1 << attempt)
+                    continue
+                raise GitHubError(f"GitHub API connection failed: {exc.reason}") from exc
 
     def _paged(self, path: str, *, max_pages: int = 100, extra: dict[str, object] | None = None):
         items = []
@@ -63,6 +73,11 @@ class GitHubClient:
             items.extend(batch)
             if len(batch) < 100:
                 break
+            if page == max_pages:
+                raise GitHubError(
+                    f"Review history exceeded the {max_pages}-page safety limit for {path}; "
+                    "refusing to return a silently incomplete audit."
+                )
             time.sleep(0.05)
         return items
 
@@ -163,6 +178,43 @@ class GitHubClient:
             )
         return comments
 
+    def selected_pull_request_comments(
+        self,
+        repo: str,
+        *,
+        pr_numbers: set[int],
+        issue_comments: bool = False,
+    ) -> list[ReviewComment]:
+        """Read only the selected PRs when a single old PR widens the time window.
+
+        Recently updated/merged PRs can have creation dates many years in the
+        past. A repository-wide ascending scan from that date can be huge and
+        truncated; fetching each selected PR avoids the correctness hazard.
+        """
+        collection = "issues" if issue_comments else "pulls"
+        comments: list[ReviewComment] = []
+        for number in sorted(pr_numbers):
+            raw = self._paged(
+                f"/repos/{repo}/{collection}/{number}/comments",
+                max_pages=10,
+            )
+            for item in raw:
+                user = item.get("user") or {}
+                comments.append(
+                    ReviewComment(
+                        repo=repo,
+                        pr_number=number,
+                        url=item.get("html_url") or item.get("url") or "",
+                        author=user.get("login") or "unknown",
+                        author_type=user.get("type"),
+                        body=item.get("body") or "",
+                        path=None if issue_comments else item.get("path"),
+                        created_at=item.get("created_at"),
+                        author_association=item.get("author_association"),
+                    )
+                )
+        return comments
+
     def collect(self, repo: str, *, max_prs: int = 100, include_issue_comments: bool = False) -> list[ReviewComment]:
         pulls = self.merged_pull_requests(repo, max_prs=max_prs)
         if not pulls:
@@ -172,7 +224,21 @@ class GitHubClient:
         created_at_values = [pull.get("created_at") for pull in pulls if pull.get("created_at")]
         since = min(created_at_values) if created_at_values else None
 
-        comments = self.repository_review_comments(repo, pr_numbers=pr_numbers, since=since)
-        if include_issue_comments:
-            comments.extend(self.repository_issue_comments(repo, pr_numbers=pr_numbers, since=since))
+        # One PR merged today may have been opened years ago. Restricting the
+        # scan by that PR's creation date makes repository-wide pagination
+        # prohibitively expensive or incomplete on active projects.
+        oldest = datetime.fromisoformat(since.replace("Z", "+00:00")) if since else None
+        per_pr = bool(oldest and datetime.now(timezone.utc) - oldest > timedelta(days=90))
+        if per_pr:
+            comments = self.selected_pull_request_comments(repo, pr_numbers=pr_numbers)
+            if include_issue_comments:
+                comments.extend(
+                    self.selected_pull_request_comments(
+                        repo, pr_numbers=pr_numbers, issue_comments=True
+                    )
+                )
+        else:
+            comments = self.repository_review_comments(repo, pr_numbers=pr_numbers, since=since)
+            if include_issue_comments:
+                comments.extend(self.repository_issue_comments(repo, pr_numbers=pr_numbers, since=since))
         return comments
