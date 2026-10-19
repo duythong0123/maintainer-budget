@@ -11,6 +11,24 @@ class FakeGitHubClient(GitHubClient):
 
     def _get(self, path, params=None):
         self.calls.append((path, params or {}))
+        if path.endswith("/pulls/10/comments"):
+            return [{
+                "html_url": "https://github.com/o/r/pull/10#discussion_r3",
+                "user": {"login": "bob", "type": "User"},
+                "body": "Use WidgetFactory::default() here too.",
+                "path": "src/b.py",
+                "created_at": "2020-10-04T00:00:00Z",
+                "author_association": "COLLABORATOR",
+            }]
+        if path.endswith("/pulls/11/comments"):
+            return [{
+                "html_url": "https://github.com/o/r/pull/11#discussion_r1",
+                "user": {"login": "alice", "type": "User"},
+                "body": "Please use WidgetFactory::default().",
+                "path": "src/a.py",
+                "created_at": "2020-10-02T00:00:00Z",
+                "author_association": "MEMBER",
+            }]
         if path.endswith("/pulls/comments"):
             return [
                 {
@@ -100,6 +118,27 @@ class GitHubClientTests(unittest.TestCase):
             [path for path, _ in client.calls],
             ["/repos/o/r/pulls/comments", "/repos/o/r/issues/comments"],
         )
+
+    def test_old_newly_merged_pull_uses_selected_pr_endpoints(self):
+        client = FakeGitHubClient()
+        pulls = [
+            {"number": 11, "created_at": "2020-03-01T00:00:00Z", "merged_at": "2026-10-18T00:00:00Z"},
+            {"number": 10, "created_at": "2020-06-02T00:00:00Z", "merged_at": "2026-10-17T00:00:00Z"},
+        ]
+        with patch.object(client, "merged_pull_requests", return_value=pulls):
+            comments = client.collect("o/r", max_prs=2)
+        self.assertEqual({c.pr_number for c in comments}, {10, 11})
+        self.assertEqual(
+            [path for path, _ in client.calls],
+            ["/repos/o/r/pulls/10/comments", "/repos/o/r/pulls/11/comments"],
+        )
+
+    def test_paged_safety_limit_rejects_silent_truncation(self):
+        client = FakeGitHubClient()
+        with patch.object(client, "_get", return_value=[{"id": i} for i in range(100)]):
+            from maintainer_budget.github import GitHubError
+            with self.assertRaisesRegex(GitHubError, "silently incomplete"):
+                client._paged("/repos/o/r/pulls/comments", max_pages=1)
 
     def test_no_merged_pulls_makes_no_comment_requests(self):
         client = FakeGitHubClient()
