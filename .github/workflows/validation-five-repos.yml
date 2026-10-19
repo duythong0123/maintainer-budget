@@ -1,0 +1,82 @@
+name: Five-repo research validation
+
+on:
+  push:
+    branches: [research/validation-2026-10-19]
+    paths:
+      - .github/workflows/validation-five-repos.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit ${{ matrix.repo }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - repo: pytest-dev/pytest
+            label: pytest
+          - repo: vitest-dev/vitest
+            label: vitest
+          - repo: astral-sh/ruff
+            label: ruff
+          - repo: Textualize/textual
+            label: textual
+          - repo: az-digital/az_quickstart
+            label: az_quickstart
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install current repo
+        run: python -m pip install .
+      - name: Audit 50 recently merged PRs without mutating target
+        env:
+          TARGET_REPO: ${{ matrix.repo }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          maintainer-budget audit "$TARGET_REPO" \
+            --max-prs 50 \
+            --output evidence/report.md \
+            --json evidence/report.json \
+            --share-card evidence/share.md
+      - name: Print candidate evidence and counts
+        if: success()
+        env:
+          TARGET_REPO: ${{ matrix.repo }}
+        run: |
+          python - <<'PY'
+          import json,os
+          p=json.load(open('evidence/report.json',encoding='utf-8'))
+          print('VALIDATION_REPO',os.getenv('TARGET_REPO'))
+          print('VALIDATION_STATS',json.dumps(p.get('stats',{}),sort_keys=True))
+          for c in p.get('candidates',[])[:12]:
+              ev=c.get('evidence',[])
+              print('VALIDATION_CANDIDATE',json.dumps({
+                  'id':c.get('id'), 'unique_prs':c.get('unique_prs'),
+                  'unique_reviewers':c.get('unique_reviewers'), 'score':c.get('score'),
+                  'excerpt':(c.get('candidate_rule') or '')[:350],
+                  'evidence':[{'pr':e.get('pr_number'),'url':e.get('url'),
+                               'author':e.get('author'),'body':(e.get('body') or '')[:300]}
+                              for e in ev[:6]],
+              },ensure_ascii=False))
+          PY
+          cat evidence/share.md >> "$GITHUB_STEP_SUMMARY"
+          printf '\n\n**Research-only:** 50 recently merged PRs. These are algorithm-generated candidates, not maintainer-approved rules or external pilots.\n' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload research data
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-${{ matrix.label }}
+          path: evidence/
+          retention-days: 30
+          if-no-files-found: error
