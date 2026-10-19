@@ -5,6 +5,8 @@ on:
     branches: [research/validation-2026-10-19]
     paths:
       - .github/workflows/validation-five-repos.yml
+      - src/maintainer_budget/github.py
+      - tests/test_github.py
   workflow_dispatch:
 
 permissions:
@@ -37,7 +39,7 @@ jobs:
           python-version: "3.12"
       - name: Install current repo
         run: python -m pip install .
-      - name: Audit 50 recently merged PRs without mutating target
+      - name: Audit 100 recently merged PRs without mutating target
         env:
           TARGET_REPO: ${{ matrix.repo }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -45,7 +47,7 @@ jobs:
           set -euo pipefail
           mkdir -p evidence
           maintainer-budget audit "$TARGET_REPO" \
-            --max-prs 50 \
+            --max-prs 100 \
             --output evidence/report.md \
             --json evidence/report.json \
             --share-card evidence/share.md
@@ -71,7 +73,7 @@ jobs:
               },ensure_ascii=False))
           PY
           cat evidence/share.md >> "$GITHUB_STEP_SUMMARY"
-          printf '\n\n**Research-only:** 50 recently merged PRs. These are algorithm-generated candidates, not maintainer-approved rules or external pilots.\n' >> "$GITHUB_STEP_SUMMARY"
+          printf '\n\n**Research-only:** 100 recently merged PRs. These are algorithm-generated candidates, not maintainer-approved rules or external pilots.\n' >> "$GITHUB_STEP_SUMMARY"
       - name: Upload research data
         if: success()
         uses: actions/upload-artifact@v4
